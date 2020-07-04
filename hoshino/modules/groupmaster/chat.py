@@ -87,14 +87,3 @@ nyb_player = f'''{R.img('newyearburst.gif').cqcode}
 async def new_year_burst(bot, ev):
     if random.random() < 0.33:
         await bot.send(ev, nyb_player)
-
-
-@sv.on_fullmatch('hctest')
-async def xcw(bot, ev):
-    import os
-    from hoshino import config
-    if os.path.exists(os.path.join(config.__bot__.RES_DIR, 'rec', 'NAKA')):
-        await bot.send(ev, R.rec('NAKA/4.mp3').cqcode)
-        await util.silence(ev, 30)
-    else:
-        await bot.send(ev, 'error')
