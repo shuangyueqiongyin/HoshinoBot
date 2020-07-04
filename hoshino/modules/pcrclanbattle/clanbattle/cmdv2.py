@@ -185,7 +185,7 @@ async def process_challenge(bot:NoneBot, ctx:Context_T, ch:ParseResult):
     """
 
     bm = BattleMaster(ctx['group_id'])
-    now = datetime.now()
+    now = datetime.now() - timedelta(days=ch.get('dayoffset', 0))
     clan = _check_clan(bm)
     mem = _check_member(bm, ch.uid, ch.alt)
 
@@ -199,6 +199,13 @@ async def process_challenge(bot:NoneBot, ctx:Context_T, ch:ParseResult):
         raise NotFoundError('补报尾刀请给出伤害值')     # 补报尾刀必须给出伤害值
 
     msg = ['']
+
+    # 上一刀如果是尾刀，这一刀就是补偿刀
+    challenges = bm.list_challenge_of_user_of_day(mem['uid'], mem['alt'], now)
+    if len(challenges) > 0 and challenges[-1]['flag'] == BattleMaster.LAST:
+        flag = BattleMaster.EXT
+        msg.append('⚠️已自动标记为补时刀')
+
     if round_ != cur_round or boss != cur_boss:
         msg.append('⚠️上报与当前进度不一致')
     else:   # 伤害校对
@@ -248,7 +255,8 @@ def locked_boss(bot: NoneBot, ctx: Context_T, bm: BattleMaster):
     '': ArgHolder(tip='伤害值', type=damage_int),
     '@': ArgHolder(tip='qq号', type=int, default=0),
     'R': ArgHolder(tip='周目数', type=round_code, default=0),
-    'B': ArgHolder(tip='Boss编号', type=boss_code, default=0)}))
+    'B': ArgHolder(tip='Boss编号', type=boss_code, default=0),
+    'D': ArgHolder(tip='日期差', type=int, default=0)}))
 async def add_challenge(bot:NoneBot, ctx:Context_T, args:ParseResult):
     bm = BattleMaster(ctx['group_id'])
     if locked_boss(bot, ctx, bm):
@@ -813,7 +821,8 @@ async def _do_show_remain(bot:NoneBot, ctx:Context_T, args:ParseResult, at_user:
         await bot.send(ctx, '\n'.join(msg), at_sender=True)
 
 
-@cb_cmd('查刀', ArgParser(usage='!查刀', arg_dict={'D': ArgHolder(tip='日期差', type=int, default=0)}))
+@cb_cmd('查刀', ArgParser(usage='!查刀', arg_dict={
+        'D': ArgHolder(tip='日期差', type=int, default=0)}))
 async def list_remain(bot:NoneBot, ctx:Context_T, args:ParseResult):
     await _do_show_remain(bot, ctx, args, at_user=False)
 @cb_cmd('催刀', ArgParser(usage='!催刀'))
@@ -822,11 +831,12 @@ async def urge_remain(bot:NoneBot, ctx:Context_T, args:ParseResult):
 
 
 @cb_cmd('出刀记录', ArgParser(usage='!出刀记录 (@qq)', arg_dict={
-        '@': ArgHolder(tip='qq号', type=int, default=0)}))
+        '@': ArgHolder(tip='qq号', type=int, default=0),
+        'D': ArgHolder(tip='日期差', type=int, default=0)}))
 async def list_challenge(bot:NoneBot, ctx:Context_T, args:ParseResult):
     bm = BattleMaster(ctx['group_id'])
     clan = _check_clan(bm)
-    now = datetime.now()
+    now = datetime.now() - timedelta(days=args.D)
     zone = bm.get_timezone_num(clan['server'])
     uid = args['@'] or args.at
     if uid:
