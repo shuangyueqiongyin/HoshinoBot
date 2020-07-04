@@ -6,22 +6,25 @@ from hoshino import R, Service, priv, util
 
 
 # basic function for debug, not included in Service('chat')
-@on_command('zai?', aliases=('在?', '在？', '在吗', '在么？', '在嘛', '在嘛？'), only_to_me=True)
+@on_command(
+    'zai?', aliases=('在?', '在？', '在吗', '在么？', '在嘛', '在嘛？'), only_to_me=True)
 async def say_hello(session):
     await session.send('はい！私はいつも貴方の側にいますよ！')
 
 
 sv = Service('chat', visible=False)
 
-@sv.on_fullmatch(('沙雕机器人', '沙雕機器人'))
+
+@sv.on_prefix(('沙雕机器人', '沙雕機器人'), only_to_me=True)
 async def say_sorry(bot, ev):
     await bot.send(ev, 'ごめんなさい！嘤嘤嘤(〒︿〒)')
 
 
-@sv.on_fullmatch(('老婆', 'waifu', 'laopo'), only_to_me=True)
+# @sv.on_fullmatch(('老婆', 'waifu', 'laopo'), only_to_me=True)
+@sv.on_prefix(('老婆', 'waifu', 'laopo'), only_to_me=True)
 async def chat_waifu(bot, ev):
     if not priv.check_priv(ev, priv.SUPERUSER):
-        await bot.send(ev, R.img('laopo.jpg').cqcode)
+        await bot.send(ev, R.img('喊谁老婆呢.jpg').cqcode)
     else:
         await bot.send(ev, 'mua~')
 
@@ -31,7 +34,7 @@ async def chat_laogong(bot, ev):
     await bot.send(ev, '你给我滚！', at_sender=True)
 
 
-@sv.on_fullmatch('mua', only_to_me=True)
+@sv.on_prefix('mua', only_to_me=True)
 async def chat_mua(bot, ev):
     await bot.send(ev, '笨蛋~', at_sender=True)
 
@@ -41,13 +44,13 @@ async def seina(bot, ev):
     await bot.send(ev, R.img('星奏.png').cqcode)
 
 
-@sv.on_fullmatch(('我有个朋友说他好了', '我朋友说他好了', ))
+@sv.on_prefix(('我有个朋友说他好了', '我朋友说他好了', ))
 async def ddhaole(bot, ev):
     await bot.send(ev, '那个朋友是不是你弟弟？')
     await util.silence(ev, 30)
 
 
-@sv.on_fullmatch('我好了')
+@sv.on_prefix('我好了')
 async def nihaole(bot, ev):
     await bot.send(ev, '不许好，憋回去！')
     await util.silence(ev, 30)
@@ -58,28 +61,40 @@ async def nihaole(bot, ev):
 
 @sv.on_keyword(('确实', '有一说一', 'u1s1', 'yysy'))
 async def chat_queshi(bot, ctx):
-    if random.random() < 0.05:
+    if random.random() < 0.1:
         await bot.send(ctx, R.img('确实.jpg').cqcode)
 
 
 @sv.on_keyword(('会战'))
 async def chat_clanba(bot, ctx):
-    if random.random() < 0.02:
-        await bot.send(ctx, R.img('我的天啊你看看都几度了.jpg').cqcode)
+    if random.random() < 0.33:
+        await bot.send(ctx, R.img('快出刀啊.jpg').cqcode)
 
 
 @sv.on_keyword(('内鬼'))
 async def chat_neigui(bot, ctx):
-    if random.random() < 0.10:
+    if random.random() < 0.2:
         await bot.send(ctx, R.img('内鬼.png').cqcode)
 
-nyb_player = f'''{R.img('newyearburst.jpg').cqcode}
+nyb_player = f'''{R.img('newyearburst.gif').cqcode}
 正在播放：New Year Burst
 ──●━━━━ 1:05/1:30
 ⇆ ㅤ◁ ㅤㅤ❚❚ ㅤㅤ▷ ㅤ↻
 '''.strip()
 
+
 @sv.on_keyword(('春黑', '新黑'))
 async def new_year_burst(bot, ev):
-    if random.random() < 0.02:
+    if random.random() < 0.33:
         await bot.send(ev, nyb_player)
+
+
+@sv.on_fullmatch('hctest')
+async def xcw(bot, ev):
+    import os
+    from hoshino import config
+    if os.path.exists(os.path.join(config.__bot__.RES_DIR, 'rec', 'NAKA')):
+        await bot.send(ev, R.rec('NAKA/4.mp3').cqcode)
+        await util.silence(ev, 30)
+    else:
+        await bot.send(ev, 'error')

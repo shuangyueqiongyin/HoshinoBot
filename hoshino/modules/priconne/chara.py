@@ -110,6 +110,8 @@ def gen_team_pic(team, size=64, star_slot_verbose=True):
 
 def download_chara_icon(id_, star):
     url = f'https://redive.estertion.win/icon/unit/{id_}{star}1.webp'
+    if id_ == 9000:
+        url = f'https://redive.estertion.win/icon/unit/{id_}02.webp'
     save_path = R.img(f'priconne/unit/icon_unit_{id_}{star}1.png').path
     logger.info(f'Downloading chara icon from {url}')
     try:

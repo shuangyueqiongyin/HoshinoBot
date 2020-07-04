@@ -2,11 +2,12 @@ import os
 from urllib.parse import urljoin
 from urllib.request import pathname2url
 
-from nonebot import MessageSegment, get_bot
+from nonebot import MessageSegment
 from PIL import Image
 
 import hoshino
-from hoshino import logger, util
+from hoshino import util
+
 
 class ResObj:
     def __init__(self, res_path):
@@ -37,7 +38,8 @@ class ResImg(ResObj):
         if hoshino.config.RES_PROTOCOL == 'http':
             return MessageSegment.image(self.url)
         elif hoshino.config.RES_PROTOCOL == 'file':
-            return MessageSegment.image(f'file:///{os.path.abspath(self.path)}')
+            return MessageSegment.image(
+                f'file:///{os.path.abspath(self.path)}')
         else:
             try:
                 return MessageSegment.image(util.pic2b64(self.open()))
@@ -53,8 +55,25 @@ class ResImg(ResObj):
             raise
 
 
+class ResRec(ResObj):
+    @property
+    def cqcode(self) -> MessageSegment:
+        if hoshino.config.RES_PROTOCOL == 'http':
+            return MessageSegment.record(self.url)
+        elif hoshino.config.RES_PROTOCOL == 'file':
+            return MessageSegment.record(
+                f'file:///{os.path.abspath(self.path)}')
+        else:
+            return MessageSegment.text('[不支持的方法]')
+
+
 def get(path, *paths):
     return ResObj(os.path.join(path, *paths))
 
+
 def img(path, *paths):
     return ResImg(os.path.join('img', path, *paths))
+
+
+def rec(path, *paths):
+    return ResRec(os.path.join('rec', path, *paths))

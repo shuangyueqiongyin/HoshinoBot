@@ -31,7 +31,7 @@ from .battlemaster import BattleMaster
 from .exception import *
 
 plt.style.use('seaborn-pastel')
-plt.rcParams['font.family'] = ['DejaVuSans', 'Microsoft YaHei', 'SimSun', ]
+plt.rcParams['font.family'] = ['WenQuanYi Micro Hei', 'DejaVuSans', 'Microsoft YaHei', 'SimSun']
 
 USAGE_ADD_CLAN = '!建会 N公会名 S服务器代号'
 USAGE_ADD_MEMBER = '!入会 昵称 (@qq)'
@@ -202,10 +202,10 @@ async def process_challenge(bot:NoneBot, ctx:Context_T, ch:ParseResult):
     if round_ != cur_round or boss != cur_boss:
         msg.append('⚠️上报与当前进度不一致')
     else:   # 伤害校对
-        eps = 30000
-        if damage > cur_hp + eps:
+        eps = 0
+        if damage >= cur_hp + eps:
             damage = cur_hp
-            msg.append(f'⚠️过度虐杀 伤害数值已自动修正为{damage}')
+            # msg.append(f'⚠️过度虐杀 伤害数值已自动修正为{damage}')
             if flag == BattleMaster.NORM:
                 flag = BattleMaster.LAST
                 msg.append('⚠️已自动标记为尾刀')
@@ -234,21 +234,38 @@ async def process_challenge(bot:NoneBot, ctx:Context_T, ch:ParseResult):
     await auto_unsubscribe(bot, ctx, bm.group, mem['uid'], boss)
 
 
+def locked_boss(bot: NoneBot, ctx: Context_T, bm: BattleMaster):
+    sub = _load_sub(bm.group)
+    lock = sub.get_lock_info()
+    if lock:
+        uid, ts = lock[0]
+        if uid == ctx['user_id']:
+            return True
+    return False
+
+
 @cb_cmd(('出刀', '报刀'), ArgParser(usage='!出刀 <伤害值> (@qq)', arg_dict={
     '': ArgHolder(tip='伤害值', type=damage_int),
     '@': ArgHolder(tip='qq号', type=int, default=0),
     'R': ArgHolder(tip='周目数', type=round_code, default=0),
     'B': ArgHolder(tip='Boss编号', type=boss_code, default=0)}))
 async def add_challenge(bot:NoneBot, ctx:Context_T, args:ParseResult):
-    challenge = ParseResult({
-        'round': args.R,
-        'boss': args.B,
-        'damage': args.get(''),
-        'uid': args['@'] or args.at or ctx['user_id'],
-        'alt': ctx['group_id'],
-        'flag': BattleMaster.NORM
-    })
-    await process_challenge(bot, ctx, challenge)
+    bm = BattleMaster(ctx['group_id'])
+    if locked_boss(bot, ctx, bm):
+        challenge = ParseResult({
+            'round': args.R,
+            'boss': args.B,
+            'damage': args.get(''),
+            'uid': args['@'] or args.at or ctx['user_id'],
+            'alt': ctx['group_id'],
+            'flag': BattleMaster.NORM
+        })
+        await process_challenge(bot, ctx, challenge)
+    else:
+        msg = ['\n您未进行锁定，无法出刀']
+        msg.append('请发送「!帮助」认真学习出刀流程')
+        msg.append('已拒绝本次出刀请求，请锁定后重新出刀')
+        await bot.send(ctx, '\n'.join(msg), at_sender=True)
 
 
 @cb_cmd(('出尾刀', '收尾', '尾刀'), ArgParser(usage='!出尾刀 (<伤害值>) (@<qq号>)', arg_dict={
@@ -572,6 +589,8 @@ async def add_sos(bot:NoneBot, ctx:Context_T, args:ParseResult):
            f"目前{clan['name']}挂树人数为{len(tree)}人：" ]
     msg.extend(_gen_namelist_text(bm, tree))
     await bot.send(ctx, '\n'.join(msg), at_sender=True)
+    # 挂树自动解锁
+    await auto_unlock_boss(bot, ctx, bm)
 
 
 @cb_cmd(('查树', ), ArgParser('!查树'))
@@ -605,7 +624,7 @@ async def lock_boss(bot:NoneBot, ctx:Context_T, args:ParseResult):
         time = datetime.now()
         sub.set_lock(uid, datetime.now().timestamp())
         _save_sub(sub, bm.group)
-        msg = f"已锁定Boss"
+        msg = f"高调承包了Boss"
         await bot.send(ctx, msg, at_sender=True)
 
 
@@ -647,7 +666,7 @@ async def auto_unlock_boss(bot:NoneBot, ctx:Context_T, bm:BattleMaster):
         else:
             sub.clear_lock()
             _save_sub(sub, bm.group)
-            msg = f"\nBoss已自动解锁"
+            msg = f"已经调教过Boss了，其他人跟上！"
             await bot.send(ctx, msg, at_sender=True)
 
 
@@ -776,16 +795,17 @@ async def stat_score(bot:NoneBot, ctx:Context_T, args:ParseResult):
 async def _do_show_remain(bot:NoneBot, ctx:Context_T, args:ParseResult, at_user:bool):
     bm = BattleMaster(ctx['group_id'])
     clan = _check_clan(bm)
+    delta = args.get('D', 0)
     if at_user:
         _check_admin(ctx, '才能催刀。您可以用【!查刀】查询余刀')
-    rlist = bm.list_challenge_remain(1, datetime.now())
+    rlist = bm.list_challenge_remain(1, datetime.now() - timedelta(days=delta))
     rlist.sort(key=lambda x: x[3] + x[4], reverse=True)
-    msg = [ f"\n{clan['name']}今日余刀：" ]
+    msg = [ f"\n{clan['name']}{'今日' if delta == 0 else (str(delta) + '日前')}余刀：" ]
     for uid, _, name, r_n, r_e in rlist:
         if r_n or r_e:
             msg.append(f"剩{r_n}刀 补时{r_e}刀 | {ms.at(uid) if at_user else name}")
     if len(msg) == 1:
-        await bot.send(ctx, f"今日{clan['name']}所有成员均已下班！各位辛苦了！", at_sender=True)
+        await bot.send(ctx, f"{'今日' if delta == 0 else (str(delta) + '日前')}{clan['name']}所有成员均已下班！各位辛苦了！", at_sender=True)
     else:
         msg.append('若有负数说明报刀有误 请注意核对\n使用“!出刀记录 @qq”可查看详细记录')
         if at_user:
@@ -793,7 +813,7 @@ async def _do_show_remain(bot:NoneBot, ctx:Context_T, args:ParseResult, at_user:
         await bot.send(ctx, '\n'.join(msg), at_sender=True)
 
 
-@cb_cmd('查刀', ArgParser(usage='!查刀'))
+@cb_cmd('查刀', ArgParser(usage='!查刀', arg_dict={'D': ArgHolder(tip='日期差', type=int, default=0)}))
 async def list_remain(bot:NoneBot, ctx:Context_T, args:ParseResult):
     await _do_show_remain(bot, ctx, args, at_user=False)
 @cb_cmd('催刀', ArgParser(usage='!催刀'))
@@ -824,3 +844,46 @@ async def list_challenge(bot:NoneBot, ctx:Context_T, args:ParseResult):
         c['flag_str'] = '|补时' if flag & bm.EXT else '|尾刀' if flag & bm.LAST else '|掉线' if flag & bm.TIMEOUT else '|通常'
         msg.append(challenstr.format_map(c))
     await bot.send(ctx, '\n'.join(msg))
+
+
+async def _do_show_rank(bot:NoneBot, ctx:Context_T, args:ParseResult):
+    import json, requests
+    name = args.name
+    headers = {
+        'Connection': 'keep-alive',
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'DNT': '1',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_16_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36',
+        'Content-Type': 'application/json',
+        'Origin': 'https://kengxxiao.github.io',
+        'Sec-Fetch-Site': 'cross-site',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Dest': 'empty',
+        'Referer': 'https://kengxxiao.github.io/Kyouka/',
+        'Accept-Language': 'en,zh-CN;q=0.9,zh;q=0.8',
+    }
+    data = '{"clanName":"%s"}' % name
+    resp = requests.post('https://service-kjcbcnmw-1254119946.gz.apigw.tencentcs.com/name/0', headers=headers, data=data.encode('utf-8'))
+    if resp.status_code == requests.codes.ok:
+        resp_data = json.loads(resp.text)
+        if not resp_data['data']:
+            await bot.send(ctx, '未找到行会', at_sender=True)
+            return
+        msg = ['\n']
+        for data in resp_data['data']:
+            msg.append(
+                f'{data["clan_name"]} 共{data["member_num"]}人:\n会长: {data["leader_name"]} | 当前第{data["rank"]}名 | 总伤害: {data["damage"]}')
+        await bot.send(ctx, '\n'.join(msg), at_sender=True)
+    else:
+        await bot.send(ctx, '查询出错，请稍后再试', at_sender=True)
+
+
+@cb_cmd(
+    ('排名', '查询排名'),
+    ArgParser(usage='!排名 <公会名>',
+    arg_dict={'': ArgHolder(tip='公会名', type=str, default='接头霸王后援会')}))
+async def list_rank(bot:NoneBot, ctx:Context_T, args:ParseResult):
+    data = ParseResult({'name': args.get('')})
+    await _do_show_rank(bot, ctx, data)

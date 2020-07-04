@@ -8,7 +8,7 @@ qksimg = R.img('anti.jpg').cqcode
 
 @sv.on_keyword(qks_url)
 async def qks_keyword(bot, ev):
-    msg = f'骑空士爪巴\n{qksimg}'
+    msg = f'骑空士走开\n{qksimg}'
     await bot.send(ev, msg, at_sender=True)
     await util.silence(ev, 60)
 
