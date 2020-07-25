@@ -24,7 +24,7 @@ async def say_sorry(bot, ev):
 @sv.on_prefix(('老婆', 'waifu', 'laopo'), only_to_me=True)
 async def chat_waifu(bot, ev):
     if not priv.check_priv(ev, priv.SUPERUSER):
-        await bot.send(ev, R.img('喊谁老婆呢.jpg').cqcode)
+        await bot.send(ev, R.img('laopo.jpg').cqcode)
     else:
         await bot.send(ev, 'mua~')
 
