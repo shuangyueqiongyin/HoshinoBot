@@ -10,7 +10,7 @@ p2 = R.img('priconne/quick/r16-4-tw-1.png').cqcode
 p4 = R.img('priconne/quick/r17-3-jp-1.png').cqcode
 p5 = R.img('priconne/quick/r17-3-jp-2.png').cqcode
 p6 = R.img('priconne/quick/r17-3-jp-3.png').cqcode
-p7 = R.img('priconne/quick/r9-5.jpg').cqcode
+p7 = R.img('priconne/quick/r9-5.png').cqcode
 event = R.img('priconne/quick/event.jpg').cqcode
 
 
