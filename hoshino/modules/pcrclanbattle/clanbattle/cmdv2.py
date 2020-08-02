@@ -832,7 +832,8 @@ async def urge_remain(bot:NoneBot, ctx:Context_T, args:ParseResult):
 
 @cb_cmd('出刀记录', ArgParser(usage='!出刀记录 (@qq)', arg_dict={
         '@': ArgHolder(tip='qq号', type=int, default=0),
-        'D': ArgHolder(tip='日期差', type=int, default=0)}))
+        'D': ArgHolder(tip='日期差', type=int, default=0),
+        'L': ArgHolder(tip='显示条数', type=int, default=0)}),)
 async def list_challenge(bot:NoneBot, ctx:Context_T, args:ParseResult):
     bm = BattleMaster(ctx['group_id'])
     clan = _check_clan(bm)
@@ -847,12 +848,18 @@ async def list_challenge(bot:NoneBot, ctx:Context_T, args:ParseResult):
 
     msg = [ f'{clan["name"]}出刀记录：\n编号|出刀者|周目|Boss|伤害|标记' ]
     challenstr = 'E{eid:0>3d}|{name}|r{round}|b{boss}|{dmg: >7,d}{flag_str}'
+
+    # 限制次数
+    count = 0
     for c in challen:
         mem = bm.get_member(c['uid'], c['alt'])
         c['name'] = mem['name'] if mem else c['uid']
         flag = c['flag']
         c['flag_str'] = '|补时' if flag & bm.EXT else '|尾刀' if flag & bm.LAST else '|掉线' if flag & bm.TIMEOUT else '|通常'
         msg.append(challenstr.format_map(c))
+        count += 1
+        if args.L > 0 and count == args.L:
+            break
     await bot.send(ctx, '\n'.join(msg))
 
 
@@ -860,22 +867,23 @@ async def _do_show_rank(bot:NoneBot, ctx:Context_T, args:ParseResult):
     import json, requests
     name = args.name
     headers = {
-        'Connection': 'keep-alive',
-        'Pragma': 'no-cache',
-        'Cache-Control': 'no-cache',
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'DNT': '1',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_16_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36',
-        'Content-Type': 'application/json',
-        'Origin': 'https://kengxxiao.github.io',
-        'Sec-Fetch-Site': 'cross-site',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Dest': 'empty',
-        'Referer': 'https://kengxxiao.github.io/Kyouka/',
-        'Accept-Language': 'en,zh-CN;q=0.9,zh;q=0.8',
-    }
-    data = '{"clanName":"%s"}' % name
-    resp = requests.post('https://service-kjcbcnmw-1254119946.gz.apigw.tencentcs.com/name/0', headers=headers, data=data.encode('utf-8'))
+    'Connection': 'keep-alive',
+    'Pragma': 'no-cache',
+    'Cache-Control': 'no-cache',
+    'Accept': 'application/json, text/javascript, */*; q=0.01',
+    'DNT': '1',
+    'Custom-Source': 'KyoukaOfficial',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36',
+    'Content-Type': 'application/json',
+    'Origin': 'https://kengxxiao.github.io',
+    'Sec-Fetch-Site': 'cross-site',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Dest': 'empty',
+    'Referer': 'https://kengxxiao.github.io/Kyouka/',
+    'Accept-Language': 'en,zh-CN;q=0.9,zh;q=0.8',
+}
+    data = '{"history":0,"clanName":"%s"}' % name
+    resp = requests.post('https://service-kjcbcnmw-1254119946.gz.apigw.tencentcs.com//name/0', headers=headers, data=data.encode('utf-8'))
     if resp.status_code == requests.codes.ok:
         resp_data = json.loads(resp.text)
         if not resp_data['data']:
