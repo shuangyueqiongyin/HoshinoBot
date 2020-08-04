@@ -24,7 +24,7 @@ async def hour_call():
         return  # 宵禁 免打扰
     hc, g = get_hour_call()
     msg = hc[now.hour]
-    if os.path.exists(os.path.join(config.__bot__.RES_DIR, 'rec', g)):
-        recfile = f'{g}/{now.hour}.mp3'
-        await sv.broadcast(R.rec(recfile).cqcode, 'hourcall', 0.1)
+    # if os.path.exists(os.path.join(config.__bot__.RES_DIR, 'rec', g)):
+    #     recfile = f'{g}/{now.hour}.mp3'
+    #     await sv.broadcast(R.rec(recfile).cqcode, 'hourcall', 0.1)
     await sv.broadcast(msg, 'hourcall', 0)
