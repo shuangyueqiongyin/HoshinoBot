@@ -14,9 +14,11 @@ img/
 imgs/
 image/
 images/
+static/
 
 # 非公开的组件
 # hoshino/modules/deepchat/
+hoshino/modules/yobot/
 
 # 暂时删除的代码
 TRASH/
@@ -116,6 +118,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+tools/
 
 # Spyder project settings
 .spyderproject
