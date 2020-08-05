@@ -124,9 +124,3 @@ DRAGON_TOOL = f'''
 async def dragon(bot, ev):
     await bot.send(ev, DRAGON_TOOL, at_sender=True)
     await util.silence(ev, 60)
-
-
-@sv.on_fullmatch(('B服日程', 'b服日程'))
-async def event_pic(bot, ev):
-    await bot.send(ev, str(event))
-    await util.silence(ev, 60)
